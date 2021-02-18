@@ -1,22 +1,21 @@
 package org.jenkinsci.plugins.builduser.varsetter.impl;
 
-import hudson.model.Cause.UserIdCause;
-
-import java.util.Map;
-
-import hudson.security.SecurityRealm;
-import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.builduser.utils.UsernameUtils;
-import org.jenkinsci.plugins.builduser.varsetter.IUsernameSettable;
-
-import hudson.security.ACL;
-import hudson.tasks.Mailer;
 import hudson.model.User;
 import hudson.model.UserProperty;
-import java.util.logging.Logger;
-import jenkins.model.Jenkins;
-import org.acegisecurity.GrantedAuthority;
+import hudson.model.Cause.UserIdCause;
+import hudson.security.SecurityRealm;
+import hudson.security.ACL;
+import hudson.tasks.Mailer;
+import org.jenkinsci.plugins.builduser.utils.UsernameUtils;
+import org.jenkinsci.plugins.builduser.varsetter.IUsernameSettable;
 import org.jenkinsci.plugins.saml.SamlSecurityRealm;
+import jenkins.model.Jenkins;
+
+import java.util.Map;
+import java.util.logging.Logger;
+
+import org.apache.commons.lang.StringUtils;
+import org.acegisecurity.GrantedAuthority;
 
 /**
  * This implementation is used to determine build username variables from <b>{@link UserIdCause}</b>.
@@ -33,85 +32,81 @@ import org.jenkinsci.plugins.saml.SamlSecurityRealm;
  */
 public class UserIdCauseDeterminant implements IUsernameSettable<UserIdCause> {
 
-	final Class<UserIdCause> causeClass = UserIdCause.class;
-	private static final Logger log = Logger.getLogger(UserIdCauseDeterminant.class.getName());
+    private static final Logger log = Logger.getLogger(UserIdCauseDeterminant.class.getName());
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>{@link UserIdCause}</b> based implementation.
+     */
+    public boolean setJenkinsUserBuildVars(UserIdCause cause, Map<String, String> variables) {
+        if (null != cause) {
+            String username = cause.getUserName();
+            UsernameUtils.setUsernameVars(username, variables);
+
+            String trimmedUserId = StringUtils.trimToEmpty(cause.getUserId());
+            String originalUserid = trimmedUserId.isEmpty() ? ACL.ANONYMOUS_USERNAME : trimmedUserId;
+            String userid = originalUserid;
+            StringBuilder groupString = new StringBuilder();
+            try {
+                Jenkins jenkinsInstance = Jenkins.get();
+                SecurityRealm realm = jenkinsInstance.getSecurityRealm();
+                userid = mapUserId(userid, realm);
+                GrantedAuthority[] authorities = realm.loadUserByUsername(originalUserid).getAuthorities();
+                for (int i = 0; i < authorities.length; i++) {
+                    String authorityString = authorities[i].getAuthority();
+                    if (authorityString != null && authorityString.length() > 0) {
+                        groupString.append(authorityString).append(",");
+                    }
+                }
+                groupString.setLength(groupString.length() == 0 ? 0 : groupString.length() - 1);
+            } catch (Exception err) {
+                // Error
+                log.warning(String.format("Failed to get groups for user: %s error: %s ", userid, err.toString()));
+            }
+            variables.put(BUILD_USER_ID, userid);
+            variables.put(BUILD_USER_VAR_GROUPS, groupString.toString());
 
 
-	/**
-	 * {@inheritDoc}
-	 * <p>
-	 * <b>{@link UserIdCause}</b> based implementation.
-	 */
-	public boolean setJenkinsUserBuildVars(UserIdCause cause,
-			Map<String, String> variables) {
-		if(null != cause) {
-			String username = cause.getUserName();
-			UsernameUtils.setUsernameVars(username, variables);
+            User user = User.get(originalUserid);
+            if (null != user) {
+                UserProperty prop = user.getProperty(Mailer.UserProperty.class);
+                if (null != prop) {
+                    String address = StringUtils.trimToEmpty(((Mailer.UserProperty) prop).getAddress());
+                    variables.put(BUILD_USER_EMAIL, address);
+                }
+            }
 
-			String trimmedUserId = StringUtils.trimToEmpty(cause.getUserId());
-			String originalUserid = trimmedUserId.isEmpty() ? ACL.ANONYMOUS_USERNAME : trimmedUserId;
-			String userid = originalUserid;
-			StringBuilder groupString = new StringBuilder();
-			try {
-				Jenkins jenkinsInstance = Jenkins.get();
-				SecurityRealm realm = jenkinsInstance.getSecurityRealm();
-				userid = mapUserId (userid, realm);
-				GrantedAuthority[] authorities = realm.loadUserByUsername(originalUserid).getAuthorities();
-				for (int i = 0; i < authorities.length; i++) {
-					String authorityString = authorities[i].getAuthority();
-					if (authorityString != null && authorityString.length() > 0) {
-						groupString.append(authorityString).append(",");
-					}
-				}
-				groupString.setLength(groupString.length() == 0 ? 0 : groupString.length() - 1);
-			} catch (Exception err) {
-				// Error
-				log.warning(String.format("Failed to get groups for user: %s error: %s ", userid, err.toString()));
-			}
-			variables.put(BUILD_USER_ID, userid);
-			variables.put(BUILD_USER_VAR_GROUPS, groupString.toString());
+            return true;
+        } else {
+            return false;
+        }
+    }
 
+    private String mapUserId(String userid, SecurityRealm realm) {
+        try {
+            if (realm instanceof SamlSecurityRealm) {
+                String conversion = ((SamlSecurityRealm) realm).getUsernameCaseConversion();
+                switch (conversion) {
+                    case "lowercase":
+                        userid = userid.toLowerCase();
+                        break;
+                    case "uppercase":
+                        userid = userid.toUpperCase();
+                        break;
+                    default:
+                }
+            }
+        } catch (NoClassDefFoundError e) {
+            log.fine("It seems the saml plugin is not installed, skipping saml user name mapping.");
+        }
+        return userid;
+    }
 
-			User user=User.get(originalUserid);
-            		if(null != user) {
-            		    UserProperty prop = user.getProperty(Mailer.UserProperty.class);
-            		    if(null != prop) {
-            		        String adrs = StringUtils.trimToEmpty(((Mailer.UserProperty)prop).getAddress());
-            		        variables.put(BUILD_USER_EMAIL, adrs);
-            		    }
-            		}
-
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	private String mapUserId(String userid, SecurityRealm realm) {
-		try {
-			if (realm instanceof SamlSecurityRealm) {
-				String conversion = ((SamlSecurityRealm) realm).getUsernameCaseConversion();
-				switch (conversion) {
-				case "lowercase":
-					userid = userid.toLowerCase();
-					break;
-				case "uppercase":
-					userid = userid.toUpperCase();
-					break;
-				default:
-				}
-			}
-		} catch (NoClassDefFoundError e) {
-			log.fine("It seems the saml plugin is not installed, skipping saml user name mapping.");
-		}
-		return userid;
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public Class<UserIdCause> getUsedCauseClass() {
-		return causeClass;
-	}
-
+    /**
+     * {@inheritDoc}
+     */
+    public Class<UserIdCause> getUsedCauseClass() {
+        return UserIdCause.class;
+    }
 }

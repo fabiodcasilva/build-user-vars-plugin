@@ -15,16 +15,6 @@ import hudson.model.TaskListener;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.triggers.SCMTrigger.SCMTriggerCause;
 import hudson.triggers.TimerTrigger.TimerTriggerCause;
-
-import java.util.Arrays;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-
-import jenkins.model.Jenkins;
-import jenkins.tasks.SimpleBuildWrapper;
-
 import org.jenkinsci.plugins.builduser.varsetter.IUsernameSettable;
 import org.jenkinsci.plugins.builduser.varsetter.impl.RemoteCauseDeterminant;
 import org.jenkinsci.plugins.builduser.varsetter.impl.SCMTriggerCauseDeterminant;
@@ -32,6 +22,14 @@ import org.jenkinsci.plugins.builduser.varsetter.impl.TimerTriggerCauseDetermina
 import org.jenkinsci.plugins.builduser.varsetter.impl.UserCauseDeterminant;
 import org.jenkinsci.plugins.builduser.varsetter.impl.UserIdCauseDeterminant;
 import org.kohsuke.stapler.DataBoundConstructor;
+import jenkins.model.Jenkins;
+import jenkins.tasks.SimpleBuildWrapper;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 
 /**
  * This plugin is used to set build user variables, see {@link IUsernameSettable}:
@@ -42,9 +40,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class BuildUser extends SimpleBuildWrapper {
 
     private static final Logger log = Logger.getLogger(BuildUser.class.getName());
-
     private static final String EXTENSION_DISPLAY_NAME = "Set jenkins user build variables";
-
 
     @DataBoundConstructor
     public BuildUser() {

@@ -2,32 +2,27 @@ package org.jenkinsci.plugins.builduser.varsetter.impl;
 
 import hudson.triggers.SCMTrigger;
 import hudson.triggers.SCMTrigger.SCMTriggerCause;
-
-import java.util.Map;
-
 import org.jenkinsci.plugins.builduser.utils.UsernameUtils;
 import org.jenkinsci.plugins.builduser.varsetter.IUsernameSettable;
 
+import java.util.Map;
+
 public class SCMTriggerCauseDeterminant implements IUsernameSettable<SCMTrigger.SCMTriggerCause> {
 
-	final Class<SCMTrigger.SCMTriggerCause> causeClass = SCMTrigger.SCMTriggerCause.class;
-	
-	public boolean setJenkinsUserBuildVars(SCMTriggerCause cause,
-			Map<String, String> variables) {
-		
+    private static final String SCM_TRIGGER_DUMMY_USER_NAME = "SCM Change";
+    private static final String SCM_TRIGGER_DUMMY_USER_ID = "scmChange";
+
+    public boolean setJenkinsUserBuildVars(SCMTriggerCause cause, Map<String, String> variables) {
         if (cause != null) {
-			UsernameUtils.setUsernameVars("SCM Change", variables);
-			variables.put(BUILD_USER_ID, "scmChange");
-			
-			return true;
-		} else {
-			return false;
-		}
-	}
+            UsernameUtils.setUsernameVars(SCM_TRIGGER_DUMMY_USER_NAME, variables);
+            variables.put(BUILD_USER_ID, SCM_TRIGGER_DUMMY_USER_ID);
 
-	public Class<SCMTriggerCause> getUsedCauseClass() {
+            return true;
+        }
+        return false;
+    }
 
-		return causeClass;
-	}
-
+    public Class<SCMTriggerCause> getUsedCauseClass() {
+        return SCMTriggerCause.class;
+    }
 }

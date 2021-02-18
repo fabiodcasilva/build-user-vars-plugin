@@ -1,17 +1,17 @@
 package org.jenkinsci.plugins.builduser.varsetter.impl;
 
-import hudson.model.*;
 import hudson.model.Cause.UserIdCause;
-
+import hudson.model.User;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.*;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class UserIdCauseDeterminantTest {
 
@@ -19,12 +19,12 @@ public class UserIdCauseDeterminantTest {
     public JenkinsRule r = new JenkinsRule();
 
     @Test
-    public void testSetJenkinsUserBuildVars() throws Exception {
+    public void testSetJenkinsUserBuildVars() {
         User.getById("testuser", true);
         JenkinsRule.DummySecurityRealm realm = r.createDummySecurityRealm();
         r.jenkins.setSecurityRealm(realm);
         realm.addGroups("testuser", "group1", "group2");
-        Map<String, String> outputVars = new HashMap<String, String>();
+        Map<String, String> outputVars = new HashMap<>();
         UserIdCause cause = new UserIdCause("testuser");
         UserIdCauseDeterminant determinant = new UserIdCauseDeterminant();
         determinant.setJenkinsUserBuildVars(cause, outputVars);
@@ -36,7 +36,7 @@ public class UserIdCauseDeterminantTest {
     public void testSetJenkinsUserBuildVarsInvalidUser() {
         JenkinsRule.DummySecurityRealm realm = r.createDummySecurityRealm();
         r.jenkins.setSecurityRealm(realm);
-        Map<String, String> outputVars = new HashMap<String, String>();
+        Map<String, String> outputVars = new HashMap<>();
         UserIdCause cause = new UserIdCause("testuser");
         UserIdCauseDeterminant determinant = new UserIdCauseDeterminant();
         determinant.setJenkinsUserBuildVars(cause, outputVars);
@@ -50,7 +50,7 @@ public class UserIdCauseDeterminantTest {
         User.getById("testuser", true);
         JenkinsRule.DummySecurityRealm realm = r.createDummySecurityRealm();
         r.jenkins.setSecurityRealm(realm);
-        Map<String, String> outputVars = new HashMap<String, String>();
+        Map<String, String> outputVars = new HashMap<>();
         UserIdCause cause = new UserIdCause("testuser");
         UserIdCauseDeterminant determinant = new UserIdCauseDeterminant();
         determinant.setJenkinsUserBuildVars(cause, outputVars);
@@ -60,9 +60,9 @@ public class UserIdCauseDeterminantTest {
     }
 
     @Test
-    public void testSetJenkinsUserBuildVarsNoSecurityRealm() throws Exception {
+    public void testSetJenkinsUserBuildVarsNoSecurityRealm() {
         User.getById("testuser", true);
-        Map<String, String> outputVars = new HashMap<String, String>();
+        Map<String, String> outputVars = new HashMap<>();
         UserIdCause cause = new UserIdCause("testuser");
         UserIdCauseDeterminant determinant = new UserIdCauseDeterminant();
         determinant.setJenkinsUserBuildVars(cause, outputVars);

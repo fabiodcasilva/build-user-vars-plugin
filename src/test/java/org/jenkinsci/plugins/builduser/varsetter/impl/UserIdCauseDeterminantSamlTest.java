@@ -1,14 +1,13 @@
 package org.jenkinsci.plugins.builduser.varsetter.impl;
 
-import hudson.model.*;
 import hudson.model.Cause.UserIdCause;
-
+import hudson.model.User;
 import hudson.security.ChainedServletFilter;
 import hudson.security.SecurityRealm;
 import jenkins.model.IdStrategy;
+import org.jenkinsci.plugins.saml.SamlSecurityRealm;
 import org.acegisecurity.GrantedAuthority;
 import org.easymock.EasyMock;
-import org.jenkinsci.plugins.saml.SamlSecurityRealm;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -17,9 +16,10 @@ import javax.servlet.FilterConfig;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.easymock.EasyMock.anyObject;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class UserIdCauseDeterminantSamlTest {
 
@@ -47,7 +47,7 @@ public class UserIdCauseDeterminantSamlTest {
 
         User.getById(userid, true);
         r.jenkins.setSecurityRealm(realm);
-        Map<String, String> outputVars = new HashMap<String, String>();
+        Map<String, String> outputVars = new HashMap<>();
         UserIdCause cause = new UserIdCause(userid);
         UserIdCauseDeterminant determinant = new UserIdCauseDeterminant();
         determinant.setJenkinsUserBuildVars(cause, outputVars);
