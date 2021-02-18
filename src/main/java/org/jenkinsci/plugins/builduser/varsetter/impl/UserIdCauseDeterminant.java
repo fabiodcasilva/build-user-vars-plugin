@@ -1,11 +1,10 @@
 package org.jenkinsci.plugins.builduser.varsetter.impl;
 
 import hudson.model.User;
-import hudson.model.UserProperty;
 import hudson.model.Cause.UserIdCause;
 import hudson.security.SecurityRealm;
 import hudson.security.ACL;
-import hudson.tasks.Mailer;
+import hudson.tasks.MailAddressResolver;
 import org.jenkinsci.plugins.builduser.utils.UsernameUtils;
 import org.jenkinsci.plugins.builduser.varsetter.IUsernameSettable;
 import org.jenkinsci.plugins.saml.SamlSecurityRealm;
@@ -40,7 +39,7 @@ public class UserIdCauseDeterminant implements IUsernameSettable<UserIdCause> {
      * <b>{@link UserIdCause}</b> based implementation.
      */
     public boolean setJenkinsUserBuildVars(UserIdCause cause, Map<String, String> variables) {
-        if (null != cause) {
+        if (cause != null) {
             String username = cause.getUserName();
             UsernameUtils.setUsernameVars(username, variables);
 
@@ -53,9 +52,9 @@ public class UserIdCauseDeterminant implements IUsernameSettable<UserIdCause> {
                 SecurityRealm realm = jenkinsInstance.getSecurityRealm();
                 userid = mapUserId(userid, realm);
                 GrantedAuthority[] authorities = realm.loadUserByUsername(originalUserid).getAuthorities();
-                for (int i = 0; i < authorities.length; i++) {
-                    String authorityString = authorities[i].getAuthority();
-                    if (authorityString != null && authorityString.length() > 0) {
+                for (GrantedAuthority authority : authorities) {
+                    String authorityString = authority.getAuthority();
+                    if (StringUtils.isNotEmpty(authorityString)) {
                         groupString.append(authorityString).append(",");
                     }
                 }
@@ -66,21 +65,11 @@ public class UserIdCauseDeterminant implements IUsernameSettable<UserIdCause> {
             }
             variables.put(BUILD_USER_ID, userid);
             variables.put(BUILD_USER_VAR_GROUPS, groupString.toString());
-
-
-            User user = User.get(originalUserid);
-            if (null != user) {
-                UserProperty prop = user.getProperty(Mailer.UserProperty.class);
-                if (null != prop) {
-                    String address = StringUtils.trimToEmpty(((Mailer.UserProperty) prop).getAddress());
-                    variables.put(BUILD_USER_EMAIL, address);
-                }
-            }
+            variables.put(BUILD_USER_EMAIL, getUserEmail());
 
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     private String mapUserId(String userid, SecurityRealm realm) {
@@ -101,6 +90,14 @@ public class UserIdCauseDeterminant implements IUsernameSettable<UserIdCause> {
             log.fine("It seems the saml plugin is not installed, skipping saml user name mapping.");
         }
         return userid;
+    }
+
+    private String getUserEmail() {
+        User user = User.current();
+        if (user != null) {
+            return MailAddressResolver.resolve(user);
+        }
+        return StringUtils.EMPTY;
     }
 
     /**
